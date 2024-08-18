@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WiFi Speed Tester</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #f4f4f4, #e0e0e0);
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        h1 {
+            color: #3498db;
+            margin-bottom: 20px;
+            font-size: 48px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        p {
+            font-size: 18px;
+            margin-bottom: 30px;
+        }
+        #speedometer-container {
+            position: relative;
+            width: 90vw; /* Adjust width as needed */
+            height: 90vw; /* Height equals width for a circular shape */
+            max-width: 600px; /* Maximum size of the speedometer */
+            max-height: 600px; /* Maximum size of the speedometer */
+        }
+        #speedometer, #needle {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        #speed {
+            font-size: 36px;
+            font-weight: bold;
+            color: #3498db;
+            text-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
+        }
+        button {
+            padding: 12px 24px;
+            font-size: 18px;
+            color: #fff;
+            background-color: #3498db;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <h1>WiFi Speed Tester</h1>
+    <p>Click the button below to test your WiFi speed.</p>
+    <button onclick="testSpeed()">Test Speed</button>
+    <div id="speedometer-container">
+        <canvas id="speedometer"></canvas>
+        <canvas id="needle"></canvas>
+    </div>
+    <p id="speed">Waiting for test...</p>
+
+    <script>
+        function resizeCanvas() {
+            const container = document.getElementById('speedometer-container');
+            const canvasSpeedometer = document.getElementById('speedometer');
+            const canvasNeedle = document.getElementById('needle');
+            
+            canvasSpeedometer.width = container.clientWidth;
+            canvasSpeedometer.height = container.clientHeight;
+            canvasNeedle.width = container.clientWidth;
+            canvasNeedle.height = container.clientHeight;
+
+            drawSpeedometer();
+        }
+
+        function drawSpeedometer() {
+            const canvas = document.getElementById('speedometer');
+            const ctx = canvas.getContext('2d');
+            const radius = canvas.width / 2;
+            const startAngle = Math.PI * 1.5; // Start angle (top of the circle)
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw outer circle with gradient
+            const outerGradient = ctx.createRadialGradient(radius, radius, radius / 4, radius, radius, radius);
+            outerGradient.addColorStop(0, '#ffffff');
+            outerGradient.addColorStop(1, '#e0e0e0');
+
+            ctx.beginPath();
+            ctx.arc(radius, radius, radius - 10, 0, 2 * Math.PI);
+            ctx.fillStyle = outerGradient;
+            ctx.fill();
+            ctx.lineWidth = 20;
+            ctx.strokeStyle = '#bdc3c7';
+            ctx.stroke();
+
+            // Draw inner circle
+            const innerGradient = ctx.createRadialGradient(radius, radius, radius / 4, radius, radius, radius / 2);
+            innerGradient.addColorStop(0, '#ffffff');
+            innerGradient.addColorStop(1, '#f2f2f2');
+
+            ctx.beginPath();
+            ctx.arc(radius, radius, radius - 30, 0, 2 * Math.PI);
+            ctx.fillStyle = innerGradient;
+            ctx.fill();
+
+            // Draw speed arc
+            const arcGradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+            arcGradient.addColorStop(0, '#3498db');
+            arcGradient.addColorStop(1, '#2980b9');
+
+            ctx.beginPath();
+            ctx.arc(radius, radius, radius - 30, startAngle, startAngle + Math.PI); // Full arc
+            ctx.lineWidth = 25;
+            ctx.strokeStyle = arcGradient;
+            ctx.stroke();
+
+            // Draw labels
+            ctx.font = 'bold 20px Arial';
+            ctx.fillStyle = '#3498db';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('0', radius - 40, radius + 20);
+            ctx.fillText('100 Mbps', radius + 40, radius + 20);
+        }
+
+        function drawNeedle(speed) {
+            const canvas = document.getElementById('needle');
+            const ctx = canvas.getContext('2d');
+            const radius = canvas.width / 2;
+            const startAngle = Math.PI * 1.5; // Start angle (top of the circle)
+            const endAngle = startAngle + (speed / 100) * Math.PI; // End angle based on speed
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw needle with realistic styling
+            ctx.save();
+            ctx.translate(radius, radius);
+            ctx.rotate(startAngle + (speed / 100) * Math.PI);
+            ctx.beginPath();
+            ctx.moveTo(-10, 0);
+            ctx.lineTo(radius - 50, 0);
+            ctx.lineWidth = 8;
+            ctx.strokeStyle = '#e74c3c';
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+            ctx.shadowBlur = 15;
+            ctx.stroke();
+            ctx.restore();
+
+            // Draw needle cap
+            ctx.beginPath();
+            ctx.arc(radius, radius, 12, 0, 2 * Math.PI);
+            ctx.fillStyle = '#e74c3c';
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+            ctx.shadowBlur = 10;
+            ctx.fill();
+        }
+
+        function animateNeedle(targetSpeed) {
+            let currentSpeed = 0;
+            const interval = setInterval(() => {
+                if (currentSpeed >= targetSpeed) {
+                    clearInterval(interval);
+                } else {
+                    currentSpeed += (targetSpeed - currentSpeed) / 10; // Increment speed smoothly
+                    drawNeedle(currentSpeed);
+                }
+            }, 20); // Adjust timing for smooth animation
+        }
+
+        function testSpeed() {
+            const image = new Image();
+            const startTime = new Date().getTime();
+            const imageSize = 5000000; // 5MB
+
+            image.onload = function() {
+                const endTime = new Date().getTime();
+                const duration = (endTime - startTime) / 1000;
+                const bitsLoaded = imageSize * 8;
+                const speedBps = bitsLoaded / duration;
+                const speedKbps = speedBps / 1024;
+                const speedMbps = speedKbps / 1024;
+                document.getElementById('speed').innerHTML = `Speed: ${speedMbps.toFixed(2)} Mbps`;
+                animateNeedle(speedMbps);
+            };
+
+            image.onerror = function() {
+                document.getElementById('speed').innerHTML = "Error: Unable to test speed.";
+            };
+
+            // Use a large image for testing from a reliable source
+            image.src = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?ixlib=rb-1.2.1&auto=format&fit=crop&w=700&q=80" + "?cache=" + Math.random();
+        }
+
+        // Initialize speedometer and handle window resize
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas(); // Initial setup
+    </script>
+</body>
+</html>
